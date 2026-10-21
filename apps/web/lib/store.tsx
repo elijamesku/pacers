@@ -38,7 +38,10 @@ import {
 interface Store {
   loading: boolean;
   signedIn: boolean;
-  me: User | null;
+  // Me is always a User object. During `loading` or when `!signedIn`, it is a
+  // placeholder; the <Gate> in app/providers.tsx guarantees consumers only
+  // ever see a real signed-in user, so pages can access `me.id` directly.
+  me: User;
   users: User[];
   workouts: Workout[];
   groups: Group[];
@@ -61,12 +64,22 @@ interface Store {
   reload: () => Promise<void>;
 }
 
+const PLACEHOLDER_USER: User = {
+  id: "",
+  name: "",
+  handle: "",
+  avatarColor: "#0062CC",
+  homeArea: "",
+  typicalPace: "",
+  footprintVisibility: "only_me",
+};
+
 const Ctx = createContext<Store | null>(null);
 
 interface State {
   loading: boolean;
   signedIn: boolean;
-  me: User | null;
+  me: User;
   users: User[];
   workouts: Workout[];
   groups: Group[];
@@ -79,7 +92,7 @@ interface State {
 const EMPTY: State = {
   loading: true,
   signedIn: false,
-  me: null,
+  me: PLACEHOLDER_USER,
   users: [],
   workouts: [],
   groups: [],
@@ -99,7 +112,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const sb = supabaseBrowser();
     const me = await fetchMe(sb);
     if (!me) {
-      setState({ ...EMPTY, loading: false, signedIn: false });
+      setState({ ...EMPTY, loading: false, signedIn: false, me: PLACEHOLDER_USER });
       return;
     }
     const [races, workouts, raceGoals, groupsRes] = await Promise.all([
@@ -138,7 +151,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const { data: sub } = sb.auth.onAuthStateChange(async (event) => {
       if (cancelled) return;
       if (event === "SIGNED_OUT") {
-        setState({ ...EMPTY, loading: false, signedIn: false });
+        setState({ ...EMPTY, loading: false, signedIn: false, me: PLACEHOLDER_USER });
       } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         await load();
       }
@@ -151,11 +164,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const setRsvp = useCallback(
     async (runId: string, status: RsvpStatus) => {
-      if (!state.me) return;
+      if (!state.signedIn) return;
       const row = await upsertRsvp(supabaseBrowser(), state.me.id, runId, status);
       setState((s) => {
         const idx = s.rsvps.findIndex(
-          (r) => r.runId === runId && r.userId === state.me!.id,
+          (r) => r.runId === runId && r.userId === state.me.id,
         );
         const next = [...s.rsvps];
         if (idx === -1) next.push(row);
@@ -163,35 +176,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return { ...s, rsvps: next };
       });
     },
-    [state.me],
+    [state.me, state.signedIn],
   );
 
   const addWorkout = useCallback(
     async (w: Omit<Workout, "id" | "userId">) => {
-      if (!state.me) return;
+      if (!state.signedIn) return;
       const row = await createWorkout(supabaseBrowser(), state.me.id, w);
       setState((s) => ({ ...s, workouts: [...s.workouts, row] }));
     },
-    [state.me],
+    [state.me, state.signedIn],
   );
 
   const addScheduledRun = useCallback(
     async (r: Omit<ScheduledRun, "id" | "createdBy">) => {
-      if (!state.me) return;
+      if (!state.signedIn) return;
       const row = await createScheduledRun(supabaseBrowser(), state.me.id, r);
       setState((s) => ({ ...s, runs: [...s.runs, row] }));
     },
-    [state.me],
+    [state.me, state.signedIn],
   );
 
   const addRaceGoal = useCallback(
     async (goal: Omit<RaceGoal, "id" | "userId" | "joinedAt" | "status">) => {
-      if (!state.me) throw new Error("not signed in");
+      if (!state.signedIn) throw new Error("not signed in");
       const row = await createRaceGoal(supabaseBrowser(), state.me.id, goal);
       setState((s) => ({ ...s, raceGoals: [...s.raceGoals, row] }));
       return row;
     },
-    [state.me],
+    [state.me, state.signedIn],
   );
 
   const removeRaceGoal = useCallback(async (id: string) => {
@@ -201,11 +214,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const joinGroup = useCallback(
     async (id: string) => {
-      if (!state.me) return;
+      if (!state.signedIn) return;
       await joinGroupQuery(supabaseBrowser(), state.me.id, id);
       await load();
     },
-    [state.me, load],
+    [state.me, state.signedIn, load],
   );
 
   const dismissNudge = useCallback((key: string) => {
@@ -261,10 +274,11 @@ export function useStore(): Store {
   return v;
 }
 
-// Narrow helper for pages that only render when signed in. Throws rather than
-// returning null so TypeScript narrows cleanly after one guard clause.
+// Returns the store only when the user is signed in and loaded; otherwise
+// null. Pages that render after the <Gate> can usually just call useStore()
+// directly and trust me.id — this is for places that want a stricter guard.
 export function useStoreSignedIn() {
   const s = useStore();
-  if (s.loading || !s.me) return null;
-  return s as Store & { me: User };
+  if (s.loading || !s.signedIn) return null;
+  return s;
 }
