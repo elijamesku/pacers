@@ -1,69 +1,218 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useMemo } from "react";
+import Link from "next/link";
+import { ArrowRight, Plus } from "lucide-react";
+import { useStore } from "@/lib/store";
+import { StatCard } from "@/components/StatCard";
+import { WeekStrip } from "@/components/WeekStrip";
+import { WorkoutRow } from "@/components/WorkoutRow";
+import { ScheduledRunCard } from "@/components/ScheduledRunCard";
+import { OverlapCard } from "@/components/OverlapCard";
+import {
+  fmtDistance,
+  toISODate,
+  weekFromDate,
+  format,
+  parseISO,
+  WEEKDAY_FULL,
+  getDay,
+} from "@/lib/date";
+import { findOverlaps } from "@/lib/overlap";
+
+export default function HomePage() {
+  const { me, users, workouts, groups, runs, rsvps } = useStore();
+  const today = useMemo(() => new Date(), []);
+  const todayISO = toISODate(today);
+
+  const myWeek = useMemo(() => {
+    const days = weekFromDate(today);
+    const startISO = toISODate(days[0]);
+    const endISO = toISODate(days[6]);
+    return workouts.filter(
+      (w) => w.userId === me.id && w.date >= startISO && w.date <= endISO,
+    );
+  }, [workouts, me.id, today]);
+
+  const todayWorkout = myWeek.find((w) => w.date === todayISO);
+
+  const activeGroup = groups[0];
+  const groupMembers = users.filter((u) => activeGroup.memberIds.includes(u.id));
+  const groupMileageThisWeek = useMemo(() => {
+    const days = weekFromDate(today);
+    const startISO = toISODate(days[0]);
+    const endISO = toISODate(days[6]);
+    return workouts
+      .filter(
+        (w) =>
+          activeGroup.memberIds.includes(w.userId) &&
+          w.date >= startISO &&
+          w.date <= endISO,
+      )
+      .reduce((sum, w) => sum + w.distanceMi, 0);
+  }, [workouts, activeGroup.memberIds, today]);
+
+  const upcomingRuns = useMemo(
+    () =>
+      runs
+        .filter((r) => r.startAt >= today.toISOString())
+        .sort((a, b) => a.startAt.localeCompare(b.startAt)),
+    [runs, today],
+  );
+
+  const overlaps = useMemo(
+    () => findOverlaps(me.id, workouts, users, todayISO),
+    [me.id, workouts, users, todayISO],
+  );
+
+  const dayIndex = (getDay(today) + 6) % 7;
+  const dayName = WEEKDAY_FULL[dayIndex];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+    <div className="space-y-8">
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-sm text-muted">{format(today, "EEEE, MMMM d")}</div>
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight mt-1">
+            Good morning.
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-sm text-muted mt-1">
+            {todayWorkout
+              ? todayWorkout.type === "rest"
+                ? "Today is a rest day."
+                : `${dayName}: ${fmtDistance(todayWorkout.distanceMi)} ${todayWorkout.type}.`
+              : `Nothing on your calendar for ${dayName}.`}
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        <Link href="/calendar" className="btn btn-primary hidden md:inline-flex">
+          <Plus size={16} />
+          Add workout
+        </Link>
+      </header>
+
+      <section className="space-y-3">
+        <div className="flex items-end justify-between">
+          <h2 className="text-sm font-semibold tracking-tight uppercase text-muted">
+            This week
+          </h2>
+          <Link
+            href="/calendar"
+            className="text-xs text-muted hover:text-foreground flex items-center gap-1"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            Full calendar
+            <ArrowRight size={12} />
+          </Link>
         </div>
-      </main>
+        <WeekStrip anchor={today} workouts={myWeek} />
+      </section>
+
+      <section className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <StatCard
+          label={`${activeGroup.name} · this week`}
+          value={`${Math.round(groupMileageThisWeek)}`}
+          sub={<>group miles planned</>}
+          accent
+        />
+        <StatCard
+          label="Upcoming together"
+          value={upcomingRuns.length}
+          sub={<>scheduled runs</>}
+        />
+        <StatCard
+          label="Members"
+          value={groupMembers.length}
+          sub={
+            <Link
+              href={`/groups/${activeGroup.id}`}
+              className="hover:text-foreground inline-flex items-center gap-1"
+            >
+              Open group <ArrowRight size={11} />
+            </Link>
+          }
+        />
+      </section>
+
+      {upcomingRuns.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold tracking-tight uppercase text-muted">
+            Upcoming together
+          </h2>
+          <div className="grid gap-3 md:grid-cols-2">
+            {upcomingRuns.slice(0, 2).map((r) => {
+              const attendees = rsvps
+                .filter((x) => x.runId === r.id && x.status === "going")
+                .map((x) => users.find((u) => u.id === x.userId))
+                .filter(Boolean) as typeof users;
+              const my = rsvps.find(
+                (x) => x.runId === r.id && x.userId === me.id,
+              );
+              return (
+                <ScheduledRunCard
+                  key={r.id}
+                  run={r}
+                  attendees={attendees}
+                  youRsvp={my?.status}
+                />
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {overlaps.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold tracking-tight uppercase text-muted">
+            Training overlap
+          </h2>
+          <p className="text-xs text-muted -mt-1">
+            Your schedules match. Suggested shared miles with people in your groups.
+          </p>
+          <div className="grid gap-3 md:grid-cols-2">
+            {overlaps.map((s) => {
+              const partner = users.find((u) => u.id === s.partnerId)!;
+              const mine = workouts.find((w) => w.id === s.youWorkoutId)!;
+              const theirs = workouts.find((w) => w.id === s.theirWorkoutId)!;
+              return (
+                <OverlapCard
+                  key={s.youWorkoutId + s.theirWorkoutId}
+                  suggestion={s}
+                  partner={partner}
+                  mine={mine}
+                  theirs={theirs}
+                />
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold tracking-tight uppercase text-muted">
+          This week&apos;s plan
+        </h2>
+        <div className="card divide-y divide-border">
+          {myWeek
+            .slice()
+            .sort((a, b) => a.date.localeCompare(b.date))
+            .map((w) => (
+              <div key={w.id} className="px-4">
+                <div className="flex items-center gap-3 pt-3">
+                  <div className="w-14 shrink-0">
+                    <div className="text-[10px] uppercase tracking-wider text-muted">
+                      {format(parseISO(w.date + "T00:00:00"), "EEE")}
+                    </div>
+                    <div className="text-lg font-semibold leading-none">
+                      {format(parseISO(w.date + "T00:00:00"), "d")}
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <WorkoutRow workout={w} />
+                  </div>
+                </div>
+              </div>
+            ))}
+        </div>
+      </section>
     </div>
   );
 }

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pacers",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev", "--port", "3030"],
+      "port": 3030
+    }
+  ]
+}
