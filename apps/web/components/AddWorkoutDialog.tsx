@@ -23,7 +23,7 @@ const TYPES: WorkoutType[] = [
 ];
 
 export function AddWorkoutDialog({ initialDate, onClose }: Props) {
-  const { addWorkout, me } = useStore();
+  const { addWorkout } = useStore();
   const [date, setDate] = useState(initialDate);
   const [type, setType] = useState<WorkoutType>("easy");
   const [distance, setDistance] = useState("5");
@@ -36,7 +36,6 @@ export function AddWorkoutDialog({ initialDate, onClose }: Props) {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     addWorkout({
-      userId: me.id,
       date,
       type,
       distanceMi: isRest ? 0 : Number(distance),

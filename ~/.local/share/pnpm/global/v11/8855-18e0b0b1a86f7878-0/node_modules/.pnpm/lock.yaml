@@ -1,0 +1,23 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      pnpm:
+        specifier: file:/private/var/folders/4x/wk79pqh56vxg0kb5q8nd69sc0000gn/T/tmp.QFGaWFX3IX
+        version: file:/private/var/folders/4x/wk79pqh56vxg0kb5q8nd69sc0000gn/T/tmp.QFGaWFX3IX
+
+packages:
+
+  pnpm@file:/private/var/folders/4x/wk79pqh56vxg0kb5q8nd69sc0000gn/T/tmp.QFGaWFX3IX:
+    resolution: {directory: /private/var/folders/4x/wk79pqh56vxg0kb5q8nd69sc0000gn/T/tmp.QFGaWFX3IX, type: directory}
+    hasBin: true
+
+snapshots:
+
+  pnpm@file:/private/var/folders/4x/wk79pqh56vxg0kb5q8nd69sc0000gn/T/tmp.QFGaWFX3IX: {}
