@@ -25,6 +25,7 @@ import {
   createScheduledRun,
   createWorkout,
   deleteRaceGoal,
+  deleteWorkout as deleteWorkoutQuery,
   fetchGroupRunsAndRsvps,
   fetchMe,
   fetchMyGroups,
@@ -32,6 +33,7 @@ import {
   fetchMyWorkouts,
   fetchRaces,
   joinGroup as joinGroupQuery,
+  updateWorkout as updateWorkoutQuery,
   upsertRsvp,
 } from "@/lib/queries";
 
@@ -52,6 +54,11 @@ interface Store {
   dismissedNudges: Set<string>;
   setRsvp: (runId: string, status: RsvpStatus) => Promise<void>;
   addWorkout: (w: Omit<Workout, "id" | "userId">) => Promise<void>;
+  updateWorkout: (
+    id: string,
+    patch: Partial<Omit<Workout, "id" | "userId">>,
+  ) => Promise<void>;
+  deleteWorkout: (id: string) => Promise<void>;
   addScheduledRun: (
     r: Omit<ScheduledRun, "id" | "createdBy">,
   ) => Promise<void>;
@@ -188,6 +195,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [state.me, state.signedIn],
   );
 
+  const updateWorkout = useCallback(
+    async (id: string, patch: Partial<Omit<Workout, "id" | "userId">>) => {
+      if (!state.signedIn) return;
+      const row = await updateWorkoutQuery(supabaseBrowser(), id, patch);
+      setState((s) => ({
+        ...s,
+        workouts: s.workouts.map((w) => (w.id === id ? row : w)),
+      }));
+    },
+    [state.signedIn],
+  );
+
+  const deleteWorkout = useCallback(
+    async (id: string) => {
+      if (!state.signedIn) return;
+      await deleteWorkoutQuery(supabaseBrowser(), id);
+      setState((s) => ({ ...s, workouts: s.workouts.filter((w) => w.id !== id) }));
+    },
+    [state.signedIn],
+  );
+
   const addScheduledRun = useCallback(
     async (r: Omit<ScheduledRun, "id" | "createdBy">) => {
       if (!state.signedIn) return;
@@ -244,6 +272,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       dismissedNudges,
       setRsvp,
       addWorkout,
+      updateWorkout,
+      deleteWorkout,
       addScheduledRun,
       addRaceGoal,
       removeRaceGoal,
@@ -256,6 +286,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       dismissedNudges,
       setRsvp,
       addWorkout,
+      updateWorkout,
+      deleteWorkout,
       addScheduledRun,
       addRaceGoal,
       removeRaceGoal,
