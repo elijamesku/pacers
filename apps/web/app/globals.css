@@ -1,14 +1,88 @@
 @import "tailwindcss";
 
 /*
- * Dark-first palette.
- * - Background and surface levels are stacked near-blacks (Strava-dark feel).
- * - Primary is TrainingPeaks blue; accent is Strava orange, used sparingly.
- * - Workout chip colors stay the same across themes (shared with
- *   lib/workout-style.ts and packages/ui-tokens/src/workout-style.ts).
+ * Light-first palette. Reference: TrainingPeaks' calendar + Strava's dark
+ * optional mode.
+ * - Light default (what TrainingPeaks looks like): white body, blue primary,
+ *   dark top navbar strip, soft tinted workout chips.
+ * - Dark mode: deep near-black stack + Strava-style rounded cards + the same
+ *   blue primary. Follows prefers-color-scheme and respects a
+ *   [data-theme="dark"] override.
  */
 
 :root {
+  color-scheme: light;
+
+  --background: #F7F8FA;
+  --foreground: #0F172A;
+  --surface: #FFFFFF;
+  --surface-muted: #F1F5F9;
+  --surface-strong: #E2E8F0;
+  --border: #E2E8F0;
+  --border-strong: #CBD5E1;
+  --muted: #64748B;
+  --muted-strong: #334155;
+
+  --primary: #2563EB;
+  --primary-hover: #1D4ED8;
+  --primary-soft: #DBEAFE;
+  --primary-outline: #BFDBFE;
+  --primary-ink: #FFFFFF;
+
+  --nav-bg: #0B1221;
+  --nav-fg: #F8FAFC;
+  --nav-muted: #94A3B8;
+  --nav-border: #1E293B;
+
+  --accent: #EA580C;
+  --accent-soft: #FFEDD5;
+
+  --success: #047857;
+  --warning: #B45309;
+  --danger: #DC2626;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --background: #0A0A0A;
+    --foreground: #FAFAFA;
+    --surface: #171717;
+    --surface-muted: #262626;
+    --surface-strong: #2E2E2E;
+    --border: #262626;
+    --border-strong: #3F3F46;
+    --muted: #A1A1AA;
+    --muted-strong: #D4D4D8;
+
+    --primary: #3B82F6;
+    --primary-hover: #60A5FA;
+    --primary-soft: #0F2548;
+    --primary-outline: #1E3A8A;
+    --primary-ink: #FFFFFF;
+
+    --nav-bg: #000000;
+    --nav-fg: #FAFAFA;
+    --nav-muted: #71717A;
+    --nav-border: #262626;
+
+    --accent: #FB923C;
+    --accent-soft: #431407;
+
+    --success: #10B981;
+    --warning: #F59E0B;
+    --danger: #F87171;
+  }
+}
+
+:root[data-theme="dark"] {
   color-scheme: dark;
 
   --background: #0A0A0A;
@@ -25,6 +99,12 @@
   --primary-hover: #60A5FA;
   --primary-soft: #0F2548;
   --primary-outline: #1E3A8A;
+  --primary-ink: #FFFFFF;
+
+  --nav-bg: #000000;
+  --nav-fg: #FAFAFA;
+  --nav-muted: #71717A;
+  --nav-border: #262626;
 
   --accent: #FB923C;
   --accent-soft: #431407;
@@ -32,66 +112,6 @@
   --success: #10B981;
   --warning: #F59E0B;
   --danger: #F87171;
-
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-pill: 999px;
-}
-
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    color-scheme: light;
-
-    --background: #FAFAF9;
-    --foreground: #0A0A0A;
-    --surface: #FFFFFF;
-    --surface-muted: #F4F4F5;
-    --surface-strong: #E4E4E7;
-    --border: #E4E4E7;
-    --border-strong: #D4D4D8;
-    --muted: #71717A;
-    --muted-strong: #3F3F46;
-
-    --primary: #2563EB;
-    --primary-hover: #1D4ED8;
-    --primary-soft: #DBEAFE;
-    --primary-outline: #BFDBFE;
-
-    --accent: #EA580C;
-    --accent-soft: #FFEDD5;
-
-    --success: #047857;
-    --warning: #B45309;
-    --danger: #DC2626;
-  }
-}
-
-:root[data-theme="light"] {
-  color-scheme: light;
-
-  --background: #FAFAF9;
-  --foreground: #0A0A0A;
-  --surface: #FFFFFF;
-  --surface-muted: #F4F4F5;
-  --surface-strong: #E4E4E7;
-  --border: #E4E4E7;
-  --border-strong: #D4D4D8;
-  --muted: #71717A;
-  --muted-strong: #3F3F46;
-
-  --primary: #2563EB;
-  --primary-hover: #1D4ED8;
-  --primary-soft: #DBEAFE;
-  --primary-outline: #BFDBFE;
-
-  --accent: #EA580C;
-  --accent-soft: #FFEDD5;
-
-  --success: #047857;
-  --warning: #B45309;
-  --danger: #DC2626;
 }
 
 @theme inline {
@@ -138,6 +158,73 @@ body {
   border-radius: var(--radius-lg);
 }
 
+/* TrainingPeaks-style workout card: colored top bar, icon-forward,
+   stacks title / duration / notes. Apply the color via style on the ::before
+   or via a workout-type class on the card itself. */
+
+.wo-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  overflow: hidden;
+}
+.wo-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: var(--wo-color, var(--primary));
+}
+.wo-card .wo-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.wo-card .wo-icon {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  color: var(--wo-color, var(--primary));
+  flex: 0 0 auto;
+}
+.wo-card .wo-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--foreground);
+}
+.wo-card .wo-dur {
+  font-family: var(--font-mono), ui-monospace, Menlo, monospace;
+  font-size: 12px;
+  color: var(--muted-strong);
+  margin-bottom: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.wo-card .wo-notes {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Workout-type color helpers (set --wo-color on the card). */
+.wo-easy      { --wo-color: #059669; }
+.wo-long      { --wo-color: #7C3AED; }
+.wo-tempo     { --wo-color: #D97706; }
+.wo-intervals { --wo-color: #DC2626; }
+.wo-race      { --wo-color: #BE123C; }
+.wo-recovery  { --wo-color: #0284C7; }
+.wo-cross     { --wo-color: #6B7280; }
+.wo-rest      { --wo-color: #9CA3AF; }
+
 /* --- Pills --- */
 
 .pill {
@@ -155,7 +242,7 @@ body {
 
 .pill-primary {
   background: var(--primary);
-  color: #FFFFFF;
+  color: var(--primary-ink);
   border-color: transparent;
 }
 
@@ -184,7 +271,7 @@ body {
 
 .btn-primary {
   background: var(--primary);
-  color: #FFFFFF;
+  color: var(--primary-ink);
 }
 .btn-primary:hover { background: var(--primary-hover); }
 
@@ -203,6 +290,21 @@ body {
   color: #FFFFFF;
 }
 
+/* --- Top navigation strip (TrainingPeaks-style dark bar) --- */
+
+.topnav {
+  background: var(--nav-bg);
+  color: var(--nav-fg);
+  border-bottom: 1px solid var(--nav-border);
+}
+.topnav a, .topnav button {
+  color: var(--nav-muted);
+}
+.topnav a:hover, .topnav button:hover,
+.topnav a[aria-current="page"], .topnav button[aria-current="page"] {
+  color: var(--nav-fg);
+}
+
 /* --- Focus ring --- */
 
 .focus-ring:focus-visible {
@@ -210,7 +312,7 @@ body {
   outline-offset: 2px;
 }
 
-/* --- Big numeric readouts (Strava-style) --- */
+/* --- Big numeric readouts --- */
 
 .stat-huge {
   font-size: clamp(32px, 7vw, 44px);
@@ -245,27 +347,6 @@ body {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
-}
-
-/* --- Story-ring avatar (friends row, Strava-feed inspired) --- */
-
-.story-ring {
-  position: relative;
-  display: inline-grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  padding: 2.5px;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
-}
-.story-ring > * {
-  background: var(--background);
-  border-radius: 50%;
-  width: 100%;
-  height: 100%;
-  display: grid;
-  place-items: center;
 }
 
 /* --- Divider --- */
