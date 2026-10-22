@@ -1,11 +1,19 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Suspense, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 export default function SignUpPage() {
+  return (
+    <Suspense>
+      <SignUpInner />
+    </Suspense>
+  );
+}
+
+function SignUpInner() {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next") || "/onboarding";
