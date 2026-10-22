@@ -347,6 +347,38 @@ export async function createWorkout(
   return mapWorkout(data as WorkoutRow);
 }
 
+export async function updateWorkout(
+  sb: SupabaseClient,
+  workoutId: string,
+  patch: Partial<Omit<Workout, "id" | "userId">>,
+): Promise<Workout> {
+  const row: Record<string, unknown> = {};
+  if (patch.date !== undefined) row.date = patch.date;
+  if (patch.type !== undefined) row.type = patch.type;
+  if (patch.distanceMi !== undefined) row.distance_mi = patch.distanceMi;
+  if (patch.paceSecPerMi !== undefined) row.pace_sec_per_mi = patch.paceSecPerMi;
+  if (patch.notes !== undefined) row.notes = patch.notes;
+  if (patch.completed !== undefined) row.completed = patch.completed;
+  if (patch.rpe !== undefined) row.rpe = patch.rpe;
+  if (patch.felt !== undefined) row.felt = patch.felt;
+  const { data, error } = await sb
+    .from("workouts")
+    .update(row)
+    .eq("id", workoutId)
+    .select()
+    .single();
+  if (error || !data) throw error ?? new Error("updateWorkout failed");
+  return mapWorkout(data as WorkoutRow);
+}
+
+export async function deleteWorkout(
+  sb: SupabaseClient,
+  workoutId: string,
+): Promise<void> {
+  const { error } = await sb.from("workouts").delete().eq("id", workoutId);
+  if (error) throw error;
+}
+
 export async function createRaceGoal(
   sb: SupabaseClient,
   userId: string,
