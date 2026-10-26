@@ -1,5 +1,6 @@
 import Link from "next/link";
 import clsx from "clsx";
+import { Check } from "lucide-react";
 import type { Workout } from "@pacers/core";
 import { WorkoutTypeIcon } from "./WorkoutTypeIcon";
 
@@ -32,7 +33,15 @@ export function WorkoutDayCard({ workout }: { workout: Workout }) {
         <span className="wo-icon">
           <WorkoutTypeIcon type={workout.type} size={16} />
         </span>
-        <span className="wo-title">{title}</span>
+        <span className="wo-title flex-1">{title}</span>
+        {workout.completed && (
+          <span
+            className="w-4 h-4 rounded-full bg-success/15 text-success flex items-center justify-center shrink-0"
+            aria-label="Completed"
+          >
+            <Check size={10} strokeWidth={3} />
+          </span>
+        )}
       </div>
       <div className="wo-dur">
         {fmtDuration(durationMin)}
