@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Check } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Avatar } from "@/components/Avatar";
+import { StravaConnectCard } from "@/components/StravaConnectCard";
 import type { FootprintVisibility } from "@pacers/core";
 import clsx from "clsx";
 
@@ -94,15 +95,13 @@ export default function ProfilePage() {
         <h2 className="text-sm font-semibold tracking-tight uppercase text-muted">
           Connected
         </h2>
+        <Suspense fallback={<div className="card p-4 text-xs text-muted">Loading…</div>}>
+          <StravaConnectCard />
+        </Suspense>
         <div className="card divide-y divide-border">
-          <ConnectRow name="Strava" status="Not connected" />
-          <ConnectRow name="Garmin" status="Not connected" />
-          <ConnectRow name="Apple Health" status="Not connected" />
+          <ConnectRow name="Garmin" status="Coming soon" />
+          <ConnectRow name="Apple Health" status="Coming soon" />
         </div>
-        <p className="text-xs text-muted">
-          For MVP, add workouts manually or upload GPX files. Platform imports
-          come later.
-        </p>
       </section>
     </div>
   );
