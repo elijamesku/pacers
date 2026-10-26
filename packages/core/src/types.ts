@@ -53,10 +53,16 @@ export interface Workout {
   userId: string;
   date: string;
   type: WorkoutType;
+  // Planned (what the day's plan says).
   distanceMi: number;
   paceSecPerMi?: number;
   notes?: string;
+  // As-run (what actually happened). All optional; populated when logged.
+  actualDistanceMi?: number;
+  actualDurationSec?: number;
+  actualPaceSecPerMi?: number;
   completed?: boolean;
+  completedAt?: string;
   rpe?: number; // 1-10, logged after
   felt?: "great" | "ok" | "flat" | "bad";
   planWorkoutId?: string; // links back to the plan this fulfilled
