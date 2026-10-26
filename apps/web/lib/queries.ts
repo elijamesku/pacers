@@ -59,7 +59,11 @@ type WorkoutRow = {
   distance_mi: number;
   pace_sec_per_mi: number | null;
   notes: string | null;
+  actual_distance_mi: number | null;
+  actual_duration_sec: number | null;
+  actual_pace_sec_per_mi: number | null;
   completed: boolean | null;
+  completed_at: string | null;
   rpe: number | null;
   felt: "great" | "ok" | "flat" | "bad" | null;
   plan_workout_id: string | null;
@@ -74,7 +78,12 @@ function mapWorkout(r: WorkoutRow): Workout {
     distanceMi: Number(r.distance_mi),
     paceSecPerMi: r.pace_sec_per_mi ?? undefined,
     notes: r.notes ?? undefined,
+    actualDistanceMi:
+      r.actual_distance_mi != null ? Number(r.actual_distance_mi) : undefined,
+    actualDurationSec: r.actual_duration_sec ?? undefined,
+    actualPaceSecPerMi: r.actual_pace_sec_per_mi ?? undefined,
     completed: r.completed ?? undefined,
+    completedAt: r.completed_at ?? undefined,
     rpe: r.rpe ?? undefined,
     felt: r.felt ?? undefined,
     planWorkoutId: r.plan_workout_id ?? undefined,
@@ -358,7 +367,14 @@ export async function updateWorkout(
   if (patch.distanceMi !== undefined) row.distance_mi = patch.distanceMi;
   if (patch.paceSecPerMi !== undefined) row.pace_sec_per_mi = patch.paceSecPerMi;
   if (patch.notes !== undefined) row.notes = patch.notes;
+  if (patch.actualDistanceMi !== undefined)
+    row.actual_distance_mi = patch.actualDistanceMi;
+  if (patch.actualDurationSec !== undefined)
+    row.actual_duration_sec = patch.actualDurationSec;
+  if (patch.actualPaceSecPerMi !== undefined)
+    row.actual_pace_sec_per_mi = patch.actualPaceSecPerMi;
   if (patch.completed !== undefined) row.completed = patch.completed;
+  if (patch.completedAt !== undefined) row.completed_at = patch.completedAt;
   if (patch.rpe !== undefined) row.rpe = patch.rpe;
   if (patch.felt !== undefined) row.felt = patch.felt;
   const { data, error } = await sb

@@ -15,10 +15,12 @@ import {
   Settings,
   ChevronDown,
   Trash2,
+  Check,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { WORKOUT_STYLES } from "@pacers/ui-tokens";
 import { WorkoutTypeIcon } from "@/components/WorkoutTypeIcon";
+import { LogRunPanel } from "@/components/LogRunPanel";
 import { fmtDistance, parseISO, format } from "@pacers/core";
 import type { Workout, WorkoutType } from "@pacers/core";
 
@@ -84,7 +86,13 @@ export default function WorkoutDetailPage({
         distanceMi: form.distanceMi,
         paceSecPerMi: form.paceSecPerMi,
         notes: form.notes,
+        actualDistanceMi: form.actualDistanceMi,
+        actualDurationSec: form.actualDurationSec,
+        actualPaceSecPerMi: form.actualPaceSecPerMi,
         completed: form.completed,
+        completedAt: form.completedAt,
+        rpe: form.rpe,
+        felt: form.felt,
         date: form.date,
       });
       setSavedTick((t) => t + 1);
@@ -100,6 +108,26 @@ export default function WorkoutDetailPage({
     await deleteWorkout(form.id);
     router.push("/calendar");
   }
+
+  function logItNow() {
+    if (!form) return;
+    const paceSec = form.paceSecPerMi ?? 600;
+    const durationSec = Math.round(form.distanceMi * paceSec);
+    setForm({
+      ...form,
+      completed: true,
+      completedAt: new Date().toISOString(),
+      actualDistanceMi: form.actualDistanceMi ?? form.distanceMi,
+      actualDurationSec: form.actualDurationSec ?? durationSec,
+      actualPaceSecPerMi: form.actualPaceSecPerMi ?? paceSec,
+      rpe: form.rpe ?? 5,
+      felt: form.felt ?? "ok",
+    });
+  }
+
+  const actualDurationMin = form.actualDurationSec
+    ? Math.round(form.actualDurationSec / 60)
+    : 0;
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -120,6 +148,20 @@ export default function WorkoutDetailPage({
           <MetricPill label="Fitness" color="var(--primary)" />
           <MetricPill label="Fatigue" color="#DC2626" />
           <MetricPill label="Form" color="#D97706" />
+          {form.completed ? (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-success bg-success/10 px-2.5 py-1 rounded-md">
+              <Check size={12} strokeWidth={3} />
+              Logged
+            </span>
+          ) : (
+            <button
+              onClick={logItNow}
+              className="btn btn-primary text-xs px-3 py-1.5"
+            >
+              <Check size={12} strokeWidth={3} />
+              Log it
+            </button>
+          )}
           <button className="btn btn-ghost p-1.5" aria-label="Settings">
             <Settings size={16} />
           </button>
@@ -207,28 +249,51 @@ export default function WorkoutDetailPage({
               <MetricRow
                 label="Duration"
                 planned={fmtH(plannedDurationMin)}
-                completed=""
+                completed={actualDurationMin > 0 ? fmtH(actualDurationMin) : ""}
                 unit="h:m:s"
                 primary
+                onCompletedChange={(v) => {
+                  const sec = parseHMS(v);
+                  if (sec != null) setForm({ ...form, actualDurationSec: sec });
+                }}
               />
               <MetricRow
                 label="Distance"
                 planned={form.distanceMi > 0 ? form.distanceMi.toFixed(2) : ""}
-                completed=""
+                completed={
+                  form.actualDistanceMi != null
+                    ? form.actualDistanceMi.toFixed(2)
+                    : ""
+                }
                 unit="mi"
                 primary
                 onPlannedChange={(v) =>
                   setForm({ ...form, distanceMi: Number(v) || 0 })
                 }
+                onCompletedChange={(v) =>
+                  setForm({
+                    ...form,
+                    actualDistanceMi: v === "" ? undefined : Number(v) || 0,
+                  })
+                }
               />
               <MetricRow
                 label="Average Pace"
                 planned={form.paceSecPerMi ? fmtPaceShort(form.paceSecPerMi) : ""}
-                completed=""
+                completed={
+                  form.actualPaceSecPerMi
+                    ? fmtPaceShort(form.actualPaceSecPerMi)
+                    : ""
+                }
                 unit="min/mi"
                 onPlannedChange={(v) => {
                   const sec = parsePace(v);
                   if (sec != null) setForm({ ...form, paceSecPerMi: sec });
+                }}
+                onCompletedChange={(v) => {
+                  const sec = parsePace(v);
+                  if (sec != null)
+                    setForm({ ...form, actualPaceSecPerMi: sec });
                 }}
               />
               <MetricRow label="Calories" planned="" completed="" unit="kcal" />
@@ -269,33 +334,31 @@ export default function WorkoutDetailPage({
             </div>
           </div>
 
-          {/* Right: description + notes */}
+          {/* Right: description + log panel */}
           <div className="w-80 shrink-0 p-5 space-y-5 bg-surface-muted/40">
             <div className="space-y-2">
               <div className="eyebrow">Description</div>
               <textarea
                 value={form.notes ?? ""}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                rows={8}
+                rows={6}
                 placeholder={placeholderFor(form.type)}
                 className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-xs leading-relaxed focus-ring resize-y"
               />
             </div>
 
-            <div className="space-y-2">
-              <div className="eyebrow">Post-activity Comments</div>
-              <input
-                type="text"
-                placeholder="Enter a new comment"
-                className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-xs focus-ring"
-              />
-            </div>
+            <div className="h-px bg-border" />
+
+            <LogRunPanel
+              form={form}
+              onChange={(patch) => setForm({ ...form, ...patch })}
+            />
 
             <div className="space-y-2">
               <div className="eyebrow">Private Notes</div>
               <textarea
-                rows={4}
-                placeholder="Use this space for personal thoughts and observations — these notes won't be shared with anyone."
+                rows={3}
+                placeholder="Personal thoughts, not shared."
                 className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-xs leading-relaxed focus-ring resize-y"
               />
             </div>
@@ -439,6 +502,7 @@ function MetricRow({
   primary,
   muted,
   onPlannedChange,
+  onCompletedChange,
 }: {
   label: string;
   planned: string;
@@ -447,6 +511,7 @@ function MetricRow({
   primary?: boolean;
   muted?: boolean;
   onPlannedChange?: (v: string) => void;
+  onCompletedChange?: (v: string) => void;
 }) {
   return (
     <>
@@ -471,12 +536,25 @@ function MetricRow({
       <input
         type="text"
         value={completed}
-        readOnly
-        className="px-2 py-1.5 rounded-md border border-border bg-surface text-sm text-center num"
+        onChange={(e) => onCompletedChange?.(e.target.value)}
+        readOnly={!onCompletedChange}
+        className={clsx(
+          "px-2 py-1.5 rounded-md border border-border bg-surface text-sm text-center num focus-ring",
+          !onCompletedChange && "bg-surface-muted/60",
+        )}
       />
       <div className="text-xs text-muted whitespace-nowrap">{unit}</div>
     </>
   );
+}
+
+function parseHMS(v: string): number | null {
+  // Accepts "h:mm:ss" or "mm:ss"
+  const parts = v.trim().split(":").map((p) => parseInt(p, 10));
+  if (parts.some((n) => Number.isNaN(n))) return null;
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return null;
 }
 
 function MinAvgMaxRow({ label, unit }: { label: string; unit: string }) {
